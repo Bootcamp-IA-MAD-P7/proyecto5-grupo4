@@ -4,12 +4,17 @@ import altair as alt
 import pyarrow as pa
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 from pathlib import Path
 
 alt.data_transformers.enable("vegafusion")
 plt.style.use("seaborn-v0_8-whitegrid")
 
-df = pl.read_parquet("../data/processed/merged_edos_sexism.parquet")
+try:
+    _base = Path(__file__).resolve().parent.parent
+except NameError:
+    _base = Path(os.getcwd()).parent
+df = pl.read_parquet(_base / "data" / "processed" / "merged_edos_sexism.parquet")
 df_pd = df.to_pandas()
 
 

@@ -55,13 +55,6 @@ htmlcov/
 # Streamlit secrets
 .streamlit/secrets.toml
 
-# Data (keep folder structure)
-data/raw/*
-data/processed/*
-
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-
 # Model artifacts
 models/*.pkl
 models/*.joblib

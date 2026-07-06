@@ -17,6 +17,8 @@ except NameError:
     _base = Path(os.getcwd()).parent
 df = pl.read_parquet(_base / "data" / "processed" / "merged_edos_sexism.parquet")
 df_pd = df.to_pandas().reset_index()
+df_tox = df.filter(pl.col("toxicity").is_not_null())
+df_tox_pd = df_tox.to_pandas().reset_index()
 
 """
 ML-17. Outlier analysis
@@ -24,14 +26,14 @@ ML-17. Outlier analysis
 # %%
 
 box = (
-    alt.Chart(df_pd)
+    alt.Chart(df_tox_pd)
     .mark_boxplot(color="steelblue")
     .encode(y=alt.Y("toxicity", title="Toxicity Score"))
     .properties(title="Boxplot - Toxicity", width=200)
 )
 
 hist = (
-    alt.Chart(df_pd)
+    alt.Chart(df_tox_pd)
     .mark_bar()
     .encode(
         x=alt.X("toxicity", bin=True, title="Toxicity Score"),
@@ -42,7 +44,7 @@ hist = (
 )
 
 scatter = (
-    alt.Chart(df_pd)
+    alt.Chart(df_tox_pd)
     .mark_circle(opacity=0.4, size=30)
     .encode(
         x=alt.X("index:Q", title="Index"),
@@ -57,7 +59,7 @@ scatter.display()
 
 # %%
 scatter = (
-    alt.Chart(df_pd)
+    alt.Chart(df_tox_pd)
     .mark_rect()
     .encode(
         x=alt.X("index:Q", bin=alt.Bin(maxbins=50)),
@@ -65,6 +67,34 @@ scatter = (
         color=alt.Color("count()", scale=alt.Scale(scheme="rainbow")),
     )
 ).show()
+# %%
+box_by_label = (
+    alt.Chart(df_tox_pd)
+    .mark_boxplot()
+    .encode(
+        x=alt.X("sexist:N", title="Sexist"),
+        y=alt.Y("toxicity", title="Toxicity"),
+        color=alt.Color("sexist:N", scale=alt.Scale(scheme="rainbow")),
+    )
+    .properties(title="Toxicity by Sexist Label", width=300)
+).display()
+
+cat_chart = (
+    alt.Chart(df_tox_pd)
+    .mark_bar()
+    .encode(
+        x=alt.X("mean(toxicity):Q", title="Mean Toxicity"),
+        y=alt.Y("label_category:N", title="Category"),
+        color=alt.Color("mean(toxicity):Q", scale=alt.Scale(scheme="rainbow")),
+    )
+    .properties(title="Mean Toxicity by Category", width=400)
+).display()
+
+# %%
+print(f"Total rows: {len(df)}")
+print(f"Toxicity available: {df_tox.shape[0]} / {df.shape[0]} rows")
+print(df["sexist"].value_counts().sort("count", descending=True))
+
 # %%
 """
 Code for saving this file as a notebook.

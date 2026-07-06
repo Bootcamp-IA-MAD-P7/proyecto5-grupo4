@@ -9,7 +9,7 @@ from pathlib import Path
 alt.data_transformers.enable("vegafusion")
 plt.style.use("seaborn-v0_8-whitegrid")
 
-df = pl.read_parquet("../data/processed/edos_merged.parquet")
+df = pl.read_parquet("../data/processed/merged_edos_sexism.parquet")
 df_pd = df.to_pandas()
 
 

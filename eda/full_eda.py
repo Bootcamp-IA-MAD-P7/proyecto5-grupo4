@@ -41,39 +41,10 @@ for col in df.columns:
 # %% [markdown]
 # ## Análisis de la variable objetivo
 #
-# Distribución de la variable objetivo en cada dataset de origen (`label_sexist` en EDOS, `sexist` en CMSB) y unificación en una única columna `target` booleana.
+# Distribución de la variable objetivo `sexist`, ya unificada como booleana en el dataset combinado.
 
 # %%
-print(df["label_sexist"].value_counts())
 print(df["sexist"].value_counts())
-
-df = df.with_columns(
-    pl.when(pl.col("label_sexist").is_not_null())
-      .then(pl.col("label_sexist") == "sexist")
-      .otherwise(pl.col("sexist"))
-      .alias("target")
-)
-
-print(df["target"].value_counts())
-print("Nulos en target:", df["target"].null_count())
-
-df_pd = df.to_pandas()
-# %%
-print(df["label_sexist"].value_counts())
-print(df["sexist"].value_counts())
-
-df = df.with_columns(
-    pl.when(pl.col("label_sexist").is_not_null())
-      .then(pl.col("label_sexist") == "sexist")
-      .otherwise(pl.col("sexist"))
-      .alias("target")
-)
-
-print(df["target"].value_counts())
-print("Nulos en target:", df["target"].null_count())
-
-df_pd = df.to_pandas()
-
 # %%
 """
 Code for saving this file as a notebook.

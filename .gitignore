@@ -68,3 +68,6 @@ temp/
 # Local databases
 *.db
 *.sqlite
+
+# Unused datasets
+data/unused/

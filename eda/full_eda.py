@@ -7,6 +7,13 @@ import seaborn as sns
 import vegafusion
 import os
 from pathlib import Path
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import PCA
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+from collections import Counter
+from textblob import TextBlob
+
 
 alt.data_transformers.enable("vegafusion")
 plt.style.use("seaborn-v0_8-whitegrid")
@@ -140,11 +147,7 @@ PCA (Principal Component Analysis) takes those high-dimensional vectors (1000 di
 In short: each tweet becomes a point on a 2D plot where nearby points have similar word patterns. Outliers (isolated points far from the clusters) are structurally different from the rest — could be mislabeled, edge cases, or unusual writing styles.
 """
 # %%
-# Which sexist tweets are similar?
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
-
-# Taking only sexist tweets for better visualization
+# Which sexist tweets are similar? Taking only sexist tweets for better visualization
 sexist_pd = df_pd[df_pd["label_sexist"] == "sexist"].copy()
 
 sexist_pd = df_pd[df_pd["label_sexist"] == "sexist"].copy()
@@ -156,6 +159,10 @@ pca = PCA(n_components=2)
 coords = pca.fit_transform(tfidf.toarray())
 sexist_pd["pc1"] = coords[:, 0]
 sexist_pd["pc2"] = coords[:, 1]
+
+feature_names = vectorizer.get_feature_names_out()
+top_pc1 = [feature_names[i] for i in pca.components_[0].argsort()[-5:]]
+top_pc2 = [feature_names[i] for i in pca.components_[1].argsort()[-5:]]
 
 cat_dd = alt.binding_select(
     options=[None] + CATEGORIES[1:],
@@ -217,6 +224,18 @@ scatter_pca_sexist = (
     .interactive()
 )
 scatter_pca_sexist.display()
+
+# %%
+# Known slurs in "not sexist" tweets
+slurs = ["bitch", "slut", "whore", "cunt", "hoe", "thot"]
+slur_pattern = "|".join(slurs)
+slurs_in_not_sexist = df_pd[
+    (df_pd["label_sexist"] == "not sexist")
+    & (df_pd["text"].str.lower().str.contains(slur_pattern))
+]
+print(f"\n=== Slurs in 'not sexist' tweets: {len(slurs_in_not_sexist)} rows ===")
+print(slurs_in_not_sexist[["text", "label_category"]].head(10))
+
 
 # %%
 """

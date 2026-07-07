@@ -27,6 +27,54 @@ df_pd = df.to_pandas().reset_index()
 df_sexist = df.filter(pl.col("label_sexist") == "sexist")
 df_sexist_pd = df_sexist.to_pandas().reset_index()
 
+
+# %%
+# Nombre de las columnas
+print(df.columns)
+
+# %%
+# Datos de las columnas
+print(df.head())
+
+# %%
+"""
+# Histograma 1 : Distribución general de los datos
+"""
+
+# %%
+plt.figure(figsize=(10, 6))
+sns.countplot(data=df_pd, x="label_sexist", palette="viridis")
+plt.title("Distribución de mensajes: Sexistas vs No Sexistas")
+plt.xlabel("Categoría")
+plt.ylabel("Cantidad de mensajes")
+plt.show()
+
+# %%
+"""
+# Histograma 2: Distribución por tipo de etiqueta detallada
+"""
+
+# %%
+plt.figure(figsize=(12, 6))
+sns.countplot(data=df_pd, y="label_category", hue="label_sexist", palette="magma")
+plt.title("Desglose detallado de categorías de sexismo")
+plt.xlabel("Cantidad de mensajes")
+plt.ylabel("Categoría específica")
+plt.show()
+
+# %%
+"""
+# Histograma 3: Balance de datos entre Train y Dev
+"""
+
+# %%
+plt.figure(figsize=(10, 6))
+sns.countplot(data=df_pd, x="split", hue="label_sexist", palette="coolwarm")
+plt.title("Balance de etiquetas sexistas en cada set (Train vs Dev)")
+plt.xlabel("Conjunto de datos")
+plt.ylabel("Cantidad de mensajes")
+plt.show()
+
 # %%
 # Distribution of label_sexist
 sexist_counts = df["label_sexist"].value_counts().sort("count", descending=True)
@@ -254,3 +302,5 @@ if __name__ == "__main__":
     else:
         jpt.write(jpt.read(_py), _nb, fmt="ipynb")
         print(f"Synced {_nb.name}")
+
+# %%

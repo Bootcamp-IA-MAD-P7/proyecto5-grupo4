@@ -68,5 +68,36 @@ train_encodings = tokenize_batch(train_df)
 dev_encodings = tokenize_batch(dev_df)
 test_encodings = tokenize_batch(test_df)
 
-print(type(train_encodings))
-print(train_encodings["input_ids"][0][:10])
+
+class SexismDataset(Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, index):
+        item = {key: torch.tensor(val[index]) for key, val in self.encodings.items()}
+        item["labels"] = torch.tensor(self.labels[index])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+
+train_labels = train_df["label"].to_list()
+dev_labels = dev_df["label"].to_list()
+test_labels = test_df["label"].to_list()
+
+train_dataset = SexismDataset(train_encodings, train_labels)
+dev_dataset = SexismDataset(dev_encodings, dev_labels)
+test_dataset = SexismDataset(test_encodings, test_labels)
+
+print(len(train_dataset))
+
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+dev_loader = DataLoader(dev_dataset, batch_size=16)
+test_loader = DataLoader(test_dataset, batch_size=16)
+
+batch = next(iter(train_loader))
+
+print(batch["input_ids"].shape)
+print(batch["labels"].shape)

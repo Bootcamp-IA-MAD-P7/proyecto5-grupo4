@@ -25,7 +25,7 @@ max_results = 100
 
 while True:
     response = jira.get(
-        f"{JIRA_URL}/rest/api/3/search",
+        f"{JIRA_URL}/rest/api/3/jql",
         params={
             "jql": f"project={JIRA_PROJECT_KEY} ORDER BY created ASC",
             "startAt": start_at,

@@ -12,7 +12,10 @@ REPO = "proyecto5-grupo4"
 
 jira = requests.Session()
 jira.auth = (JIRA_EMAIL, JIRA_API_TOKEN)
-jira.headers.update({"Accept": "application/json"})
+jira.headers.update({
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+})
 
 github_headers = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -24,13 +27,12 @@ start_at = 0
 max_results = 100
 
 while True:
-    response = jira.get(
-        f"{JIRA_URL}/rest/api/3/jql",
-        params={
-            "jql": f"project={JIRA_PROJECT_KEY} ORDER BY created ASC",
-            "startAt": start_at,
-            "maxResults": max_results,
-            "fields": "summary",
+    response = jira.post(
+    f"{JIRA_URL}/rest/api/3/search/jql",
+    json={
+        "jql": f"project={JIRA_PROJECT_KEY} ORDER BY created ASC",
+        "maxResults": max_results,
+        "fields": ["summary"],
         },
     )
 

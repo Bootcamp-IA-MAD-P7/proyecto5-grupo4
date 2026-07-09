@@ -27,4 +27,4 @@ jobs:
 
       - run: pip install requests
 
-      - run: python scripts/import_jira.py
+      - run: .github/workflows/import_jira.py

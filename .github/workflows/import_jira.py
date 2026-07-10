@@ -28,7 +28,6 @@ github_headers = {
 
 print("=== Fetching from Jira ===")
 
-# JIRA CLOUD: use /rest/api/3/search
 response = requests.post(
     f"{JIRA_URL}/rest/api/3/search",
     headers=jira_headers,

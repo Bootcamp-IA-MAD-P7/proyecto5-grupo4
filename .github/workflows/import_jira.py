@@ -16,12 +16,11 @@ github_headers = {
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-print(f"Calling: {JIRA_URL}/rest/api/3/search")
+print(f"Calling: {JIRA_URL}/rest/api/3/search/jql")
 print("=== Fetching from Jira ===")
 
-# POST request (GET is deprecated in Jira Cloud)
 response = requests.post(
-    f"{JIRA_URL}/rest/api/3/search",
+    f"{JIRA_URL}/rest/api/3/search/jql",
     auth=(JIRA_EMAIL, JIRA_API_TOKEN),
     headers={
         "Accept": "application/json",

@@ -6,6 +6,7 @@
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
+import re
 from pathlib import Path
 
 import joblib
@@ -19,6 +20,19 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score,
 )
+
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+def clean_text(text: str) -> str:
+    """Match the preprocessing applied in the DistilBERT pipeline."""
+    text = text.lower()
+    text = re.sub(r"\[USER\]", "", text)
+    text = re.sub(r"\[URL\]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
 
 # -----------------------------------------------------------------------------
 # 1. Data loading
@@ -47,20 +61,20 @@ test_df = df.filter(pl.col("split") == "test").with_columns(
 
 # -----------------------------------------------------------------------------
 # 3. Feature / target separation
+# Text is cleaned to match the DistilBERT pipeline preprocessing.
 # -----------------------------------------------------------------------------
-X_train = train_df["text"]
+X_train = train_df["text"].map_elements(clean_text, return_dtype=pl.String)
 y_train = train_df["label"]
 
-X_dev = dev_df["text"]
+X_dev = dev_df["text"].map_elements(clean_text, return_dtype=pl.String)
 y_dev = dev_df["label"]
 
-X_test = test_df["text"]
+X_test = test_df["text"].map_elements(clean_text, return_dtype=pl.String)
 y_test = test_df["label"]
 
 print(X_train.shape, y_train.shape)
 print(X_dev.shape, y_dev.shape)
 print(X_test.shape, y_test.shape)
-
 
 # -----------------------------------------------------------------------------
 # 4. TF-IDF vectorization

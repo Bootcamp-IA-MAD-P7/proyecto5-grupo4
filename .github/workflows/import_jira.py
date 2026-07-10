@@ -28,9 +28,9 @@ github_headers = {
 
 print("=== Fetching from Jira ===")
 
-# JIRA SERVER: use /rest/api/2/search
+# JIRA CLOUD: use /rest/api/3/search
 response = requests.post(
-    f"{JIRA_URL}/rest/api/2/search",
+    f"{JIRA_URL}/rest/api/3/search",
     headers=jira_headers,
     json={
         "jql": "project = ML",
@@ -65,3 +65,7 @@ for issue in issues:
         created += 1
     else:
         print(f"✗ {key} - {r.status_code}: {r.text[:100]}")
+    
+    time.sleep(1)
+
+print(f"\n=== Done: {created} created ===")

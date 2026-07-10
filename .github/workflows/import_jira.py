@@ -1,7 +1,6 @@
 import os
 import requests
 import time
-import urllib.parse
 
 JIRA_URL = os.environ["JIRA_URL"].rstrip("/")
 JIRA_EMAIL = os.environ["JIRA_EMAIL"]
@@ -11,37 +10,34 @@ GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 OWNER = "Bootcamp-IA-MAD-P7"
 REPO = "proyecto5-grupo4"
 
-# Debug: Check for hidden characters
-print(f"Email length: {len(JIRA_EMAIL)}")
-print(f"Token length: {len(JIRA_API_TOKEN)}")
-print(f"Email starts with: {JIRA_EMAIL[:3]}")
-print(f"Token starts with: {JIRA_API_TOKEN[:3]}")
-print(f"URL ends with: {JIRA_URL[-10:]}")
-
 github_headers = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-jql = "project = ML"
-url = f"{JIRA_URL}/rest/api/3/search?jql={urllib.parse.quote(jql)}&maxResults=100&fields=summary"
+print(f"Calling: {JIRA_URL}/rest/api/3/search")
+print("=== Fetching from Jira ===")
 
-print("\n=== Fetching from Jira ===")
-
-# Use requests built-in auth - most reliable
-response = requests.get(
-    url,
+# POST request (GET is deprecated in Jira Cloud)
+response = requests.post(
+    f"{JIRA_URL}/rest/api/3/search",
     auth=(JIRA_EMAIL, JIRA_API_TOKEN),
-    headers={"Accept": "application/json"},
+    headers={
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    },
+    json={
+        "jql": "project = ML",
+        "maxResults": 100,
+        "fields": ["summary"],
+    },
 )
 
 print(f"Status: {response.status_code}")
-print(f"Content-Type: {response.headers.get('Content-Type')}")
 
-if "json" not in response.headers.get("Content-Type", ""):
-    print(f"ERROR: Got HTML instead of JSON. Auth is failing.")
-    print(f"First 200 chars: {response.text[:200]}")
+if response.status_code != 200:
+    print(f"Error: {response.text[:500]}")
     exit(1)
 
 data = response.json()

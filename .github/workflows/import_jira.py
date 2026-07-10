@@ -1,13 +1,15 @@
 import os
 import requests
 
-JIRA_URL = os.environ["JIRA_URL"].rstrip("/")
-JIRA_EMAIL = os.environ["JIRA_EMAIL"]
-JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
+JIRA_URL = os.environ["JIRA_URL"].strip().rstrip("/")
+# STRIP THE EMAIL AND TOKEN!
+JIRA_EMAIL = os.environ["JIRA_EMAIL"].strip()
+JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"].strip()
 
-print(f"Secret Email: {JIRA_EMAIL}")
+print(f"Testing cleaned credentials...")
+print(f"Email length: {len(JIRA_EMAIL)}")
+print(f"Token length: {len(JIRA_API_TOKEN)}")
 
-print("\n--- Asking Jira 'Who am I?' ---")
 r = requests.get(
     f"{JIRA_URL}/rest/api/3/myself",
     auth=(JIRA_EMAIL, JIRA_API_TOKEN),
@@ -15,9 +17,10 @@ r = requests.get(
 )
 
 print(f"Status: {r.status_code}")
-try:
+
+if r.status_code == 200:
     data = r.json()
-    print(f"API Account Name: {data.get('displayName')}")
-    print(f"API Account Email: {data.get('emailAddress')}")
-except:
-    print(f"Raw response: [{r.text}]")
+    print(f"SUCCESS! Logged in as: {data.get('displayName')}")
+    print(f"Email: {data.get('emailAddress')}")
+else:
+    print(f"FAILED: {r.text}")

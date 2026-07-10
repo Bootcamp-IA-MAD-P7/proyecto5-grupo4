@@ -4,7 +4,6 @@ import base64
 import time
 import urllib.parse
 
-# Strip any accidental trailing slashes
 JIRA_URL = os.environ["JIRA_URL"].rstrip("/")
 JIRA_EMAIL = os.environ["JIRA_EMAIL"]
 JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
@@ -28,18 +27,17 @@ github_headers = {
 }
 
 jql = "project = ML"
-# Use GET request with JQL in the URL parameters
 url = f"{JIRA_URL}/rest/api/3/search?jql={urllib.parse.quote(jql)}&maxResults=100&fields=summary"
 
-print(f"Calling: {url}")
 print("=== Fetching from Jira ===")
-
 response = requests.get(url, headers=jira_headers)
 
 print(f"Jira status: {response.status_code}")
+print(f"Response headers: {dict(response.headers)}")
+print(f"Response text: [{response.text[:500]}]")  # SHOW EXACT CONTENT
 
-if response.status_code != 200:
-    print(f"Error: {response.text[:500]}")
+if response.status_code != 200 or not response.text:
+    print("Stopping because response is empty or not 200")
     exit(1)
 
 data = response.json()

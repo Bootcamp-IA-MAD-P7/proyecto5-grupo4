@@ -1,6 +1,7 @@
 import os
 import requests
 import base64
+import time
 
 JIRA_URL = os.environ["JIRA_URL"]
 JIRA_EMAIL = os.environ["JIRA_EMAIL"]
@@ -10,7 +11,6 @@ GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 OWNER = "Bootcamp-IA-MAD-P7"
 REPO = "proyecto5-grupo4"
 
-# FIX: Explicit Basic Auth header
 credentials = f"{JIRA_EMAIL}:{JIRA_API_TOKEN}"
 encoded = base64.b64encode(credentials.encode()).decode()
 
@@ -26,15 +26,7 @@ github_headers = {
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-print("=== Testing auth ===")
-r = requests.get(f"{JIRA_URL}/rest/api/3/myself", headers=jira_headers)
-print(f"Auth test: {r.status_code}")
-if r.status_code != 200:
-    print(f"Auth failed: {r.text}")
-    exit(1)
-print(f"Logged in as: {r.json().get('displayName')}")
-
-print("\n=== Fetching issues ===")
+print("=== Fetching from Jira ===")
 response = requests.post(
     f"{JIRA_URL}/rest/api/3/search/jql",
     headers=jira_headers,
@@ -45,11 +37,14 @@ response = requests.post(
     },
 )
 
+print(f"Jira status: {response.status_code}")
+
 if response.status_code != 200:
-    print(f"Jira error: {response.text}")
+    print(f"Error: {response.text[:500]}")
     exit(1)
 
-issues = response.json().get("issues", [])
+data = response.json()
+issues = data.get("issues", [])
 print(f"Found {len(issues)} issues")
 
 created = 0
@@ -69,7 +64,6 @@ for issue in issues:
     else:
         print(f"✗ {key} - {r.status_code}: {r.text[:100]}")
     
-    import time
     time.sleep(1)
 
 print(f"\n=== Done: {created} created ===")

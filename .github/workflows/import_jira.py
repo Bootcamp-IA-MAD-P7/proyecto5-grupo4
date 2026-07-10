@@ -30,10 +30,10 @@ while True:
     response = jira.post(
     f"{JIRA_URL}/rest/api/3/search/jql",
     json={
-        "jql": f"project={JIRA_PROJECT_KEY} ORDER BY created ASC",
-        "maxResults": max_results,
+        "jql": "project = ML ORDER BY cf[10019] ASC",
+        "maxResults": 100,
         "fields": ["summary"],
-        },
+    },
     )
 
     print(response.status_code)

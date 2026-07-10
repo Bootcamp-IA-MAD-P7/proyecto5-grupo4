@@ -1,64 +1,58 @@
 import os
 import requests
-import time
 
 JIRA_URL = os.environ["JIRA_URL"]
 JIRA_EMAIL = os.environ["JIRA_EMAIL"]
 JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
-JIRA_PROJECT_KEY = os.environ["JIRA_PROJECT_KEY"]
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-
-OWNER = "Bootcamp-IA-MAD-P7"
-REPO = "proyecto5-grupo4"
 
 jira = requests.Session()
 jira.auth = (JIRA_EMAIL, JIRA_API_TOKEN)
-jira.headers.update({
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-})
+jira.headers.update({"Accept": "application/json"})
 
-github_headers = {
-    "Authorization": f"Bearer {GITHUB_TOKEN}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-}
+print(f"JIRA_URL: {JIRA_URL}")
+print()
 
-print(f"=== Importing from Jira project: {JIRA_PROJECT_KEY} ===")
+# 1. Check if we can connect at all
+print("=== Test 1: Basic connectivity ===")
+r = jira.get(f"{JIRA_URL}/rest/api/3/myself")
+print(f"Status: {r.status_code}")
+if r.status_code == 200:
+    print(f"Logged in as: {r.json().get('displayName', 'unknown')}")
+else:
+    print(r.text)
+print()
 
-response = jira.post(
-    f"{JIRA_URL}/rest/api/3/search/jql",
-    json={
-        "jql": f"project = {JIRA_PROJECT_KEY} ORDER BY cf[10019] ASC",
-        "maxResults": 100,
-        "fields": ["summary"],
-    },
-)
+# 2. List projects
+print("=== Test 2: List projects ===")
+r = jira.get(f"{JIRA_URL}/rest/api/3/project")
+print(f"Status: {r.status_code}")
+if r.status_code == 200:
+    for p in r.json():
+        print(f"  {p['key']} - {p['name']}")
+else:
+    print(r.text)
+print()
 
-if response.status_code != 200:
-    print(f"Jira error {response.status_code}: {response.text}")
-    exit(1)
+# 3. Try different JQL formats
+print("=== Test 3: JQL queries ===")
 
-issues = response.json().get("issues", [])
-print(f"Found {len(issues)} issues")
+queries = [
+    "project = ML",
+    "project = ML ORDER BY created ASC",
+    "project=ML",
+]
 
-created = 0
-for issue in issues:
-    key = issue["key"]
-    title = issue["fields"]["summary"]
-    
-    r = requests.post(
-        f"https://api.github.com/repos/{OWNER}/{REPO}/issues",
-        headers=github_headers,
-        json={"title": f"[{key}] {title}"},
+for q in queries:
+    print(f"\nQuery: {q}")
+    r = jira.post(
+        f"{JIRA_URL}/rest/api/3/search/jql",
+        json={"jql": q, "maxResults": 5, "fields": ["summary"]},
     )
-    
-    if r.status_code == 201:
-        print(f"✓ {key} - {title}")
-        created += 1
+    print(f"  Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        print(f"  Total: {data.get('total', 0)}")
+        for issue in data.get("issues", [])[:3]:
+            print(f"    - {issue['key']}: {issue['fields']['summary'][:50]}")
     else:
-        print(f"✗ {key} - Error {r.status_code}: {r.text[:200]}")
-    
-    time.sleep(1)
-
-print(f"\n=== Done: {created} issues created ===")
+        print(f"  Error: {r.text[:200]}")

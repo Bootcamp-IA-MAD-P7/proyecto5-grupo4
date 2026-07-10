@@ -10,6 +10,7 @@ permissions:
 jobs:
   import:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Catch infinite loops early
 
     env:
       JIRA_URL: ${{ secrets.JIRA_URL }}
@@ -27,4 +28,5 @@ jobs:
 
       - run: pip install requests
 
-      - run: python .github/workflows/import_jira.py
+      - name: Run import script
+        run: python .github/workflows/import_jira.py

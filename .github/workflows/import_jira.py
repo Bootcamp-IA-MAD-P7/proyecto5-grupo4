@@ -1,6 +1,5 @@
 import os
 import requests
-import base64
 import time
 import urllib.parse
 
@@ -12,13 +11,12 @@ GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 OWNER = "Bootcamp-IA-MAD-P7"
 REPO = "proyecto5-grupo4"
 
-credentials = f"{JIRA_EMAIL}:{JIRA_API_TOKEN}"
-encoded = base64.b64encode(credentials.encode()).decode()
-
-jira_headers = {
-    "Authorization": f"Basic {encoded}",
-    "Accept": "application/json",
-}
+# Debug: Check for hidden characters
+print(f"Email length: {len(JIRA_EMAIL)}")
+print(f"Token length: {len(JIRA_API_TOKEN)}")
+print(f"Email starts with: {JIRA_EMAIL[:3]}")
+print(f"Token starts with: {JIRA_API_TOKEN[:3]}")
+print(f"URL ends with: {JIRA_URL[-10:]}")
 
 github_headers = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -29,15 +27,21 @@ github_headers = {
 jql = "project = ML"
 url = f"{JIRA_URL}/rest/api/3/search?jql={urllib.parse.quote(jql)}&maxResults=100&fields=summary"
 
-print("=== Fetching from Jira ===")
-response = requests.get(url, headers=jira_headers)
+print("\n=== Fetching from Jira ===")
 
-print(f"Jira status: {response.status_code}")
-print(f"Response headers: {dict(response.headers)}")
-print(f"Response text: [{response.text[:500]}]")  # SHOW EXACT CONTENT
+# Use requests built-in auth - most reliable
+response = requests.get(
+    url,
+    auth=(JIRA_EMAIL, JIRA_API_TOKEN),
+    headers={"Accept": "application/json"},
+)
 
-if response.status_code != 200 or not response.text:
-    print("Stopping because response is empty or not 200")
+print(f"Status: {response.status_code}")
+print(f"Content-Type: {response.headers.get('Content-Type')}")
+
+if "json" not in response.headers.get("Content-Type", ""):
+    print(f"ERROR: Got HTML instead of JSON. Auth is failing.")
+    print(f"First 200 chars: {response.text[:200]}")
     exit(1)
 
 data = response.json()

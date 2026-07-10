@@ -2,8 +2,10 @@ import os
 import requests
 import base64
 import time
+import urllib.parse
 
-JIRA_URL = os.environ["JIRA_URL"]
+# Strip any accidental trailing slashes
+JIRA_URL = os.environ["JIRA_URL"].rstrip("/")
 JIRA_EMAIL = os.environ["JIRA_EMAIL"]
 JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
@@ -17,7 +19,6 @@ encoded = base64.b64encode(credentials.encode()).decode()
 jira_headers = {
     "Authorization": f"Basic {encoded}",
     "Accept": "application/json",
-    "Content-Type": "application/json",
 }
 
 github_headers = {
@@ -26,17 +27,14 @@ github_headers = {
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
+jql = "project = ML"
+# Use GET request with JQL in the URL parameters
+url = f"{JIRA_URL}/rest/api/3/search?jql={urllib.parse.quote(jql)}&maxResults=100&fields=summary"
+
+print(f"Calling: {url}")
 print("=== Fetching from Jira ===")
 
-response = requests.post(
-    f"{JIRA_URL}/rest/api/3/search",
-    headers=jira_headers,
-    json={
-        "jql": "project = ML",
-        "maxResults": 100,
-        "fields": ["summary"],
-    },
-)
+response = requests.get(url, headers=jira_headers)
 
 print(f"Jira status: {response.status_code}")
 

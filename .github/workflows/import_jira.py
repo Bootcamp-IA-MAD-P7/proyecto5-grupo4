@@ -2,13 +2,12 @@ import os
 import requests
 
 JIRA_URL = os.environ["JIRA_URL"].strip().rstrip("/")
-# STRIP THE EMAIL AND TOKEN!
 JIRA_EMAIL = os.environ["JIRA_EMAIL"].strip()
 JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"].strip()
 
-print(f"Testing cleaned credentials...")
-print(f"Email length: {len(JIRA_EMAIL)}")
-print(f"Token length: {len(JIRA_API_TOKEN)}")
+print(f"URL: {JIRA_URL}")
+print(f"Email: {JIRA_EMAIL}")
+print(f"Token starts with: {JIRA_API_TOKEN[:5]}")
 
 r = requests.get(
     f"{JIRA_URL}/rest/api/3/myself",
@@ -16,11 +15,8 @@ r = requests.get(
     headers={"Accept": "application/json"}
 )
 
-print(f"Status: {r.status_code}")
-
+print(f"\nStatus: {r.status_code}")
 if r.status_code == 200:
-    data = r.json()
-    print(f"SUCCESS! Logged in as: {data.get('displayName')}")
-    print(f"Email: {data.get('emailAddress')}")
+    print(f"✅ SUCCESS! Logged in as: {r.json().get('displayName')}")
 else:
-    print(f"FAILED: {r.text}")
+    print(f"❌ FAILED: {r.text}")

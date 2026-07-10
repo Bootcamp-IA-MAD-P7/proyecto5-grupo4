@@ -1,65 +1,41 @@
 import os
 import requests
-import time
 
 JIRA_URL = os.environ["JIRA_URL"].rstrip("/")
 JIRA_EMAIL = os.environ["JIRA_EMAIL"]
 JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 
-OWNER = "Bootcamp-IA-MAD-P7"
-REPO = "proyecto5-grupo4"
+print("=== DIAGNOSTIC TEST ===\n")
 
-github_headers = {
-    "Authorization": f"Bearer {GITHUB_TOKEN}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-}
-
-print(f"Calling: {JIRA_URL}/rest/api/3/search/jql")
-print("=== Fetching from Jira ===")
-
-response = requests.post(
+# Test 1: How many issues does Jira think are in project ML?
+print("1. Searching for 'project = ML'...")
+r1 = requests.post(
     f"{JIRA_URL}/rest/api/3/search/jql",
     auth=(JIRA_EMAIL, JIRA_API_TOKEN),
-    headers={
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    },
-    json={
-        "jql": "project = ML",
-        "maxResults": 100,
-        "fields": ["summary"],
-    },
+    headers={"Accept": "application/json", "Content-Type": "application/json"},
+    json={"jql": "project = ML", "maxResults": 0, "fields": []}
 )
+if r1.status_code == 200:
+    data1 = r1.json()
+    print(f"   Total issues in ML: {data1.get('total', 'ERROR')}")
+    print(f"   Warning message: {data1.get('warningMessages', 'None')}")
+else:
+    print(f"   Error: {r1.text[:200]}")
 
-print(f"Status: {response.status_code}")
+print("\n2. Searching for ANY issues you have access to...")
+# Test 2: Just find ANY issue in the whole system for this user
+r2 = requests.post(
+    f"{JIRA_URL}/rest/api/3/search/jql",
+    auth=(JIRA_EMAIL, JIRA_API_TOKEN),
+    headers={"Accept": "application/json", "Content-Type": "application/json"},
+    json={"jql": "assignee = currentUser() ORDER BY created DESC", "maxResults": 5, "fields": ["summary"]}
+)
+if r2.status_code == 200:
+    data2 = r2.json()
+    print(f"   Total issues assigned to you: {data2.get('total', 'ERROR')}")
+    for issue in data2.get("issues", []):
+        print(f"   -> {issue['key']}: {issue['fields']['summary'][:50]}")
+else:
+    print(f"   Error: {r2.text[:200]}")
 
-if response.status_code != 200:
-    print(f"Error: {response.text[:500]}")
-    exit(1)
-
-data = response.json()
-issues = data.get("issues", [])
-print(f"Found {len(issues)} issues")
-
-created = 0
-for issue in issues:
-    key = issue["key"]
-    title = issue["fields"]["summary"]
-    
-    r = requests.post(
-        f"https://api.github.com/repos/{OWNER}/{REPO}/issues",
-        headers=github_headers,
-        json={"title": f"[{key}] {title}"},
-    )
-    
-    if r.status_code == 201:
-        print(f"✓ {key} - {title}")
-        created += 1
-    else:
-        print(f"✗ {key} - {r.status_code}: {r.text[:100]}")
-    
-    time.sleep(1)
-
-print(f"\n=== Done: {created} created ===")
+print("\n=== DONE ===")

@@ -1,0 +1,21 @@
+Threshold=0.5 (default):
+              precision    recall  f1-score   support
+
+  not sexist       0.94      0.83      0.88      3030
+      sexist       0.61      0.83      0.70       970
+
+    accuracy                           0.83      4000
+   macro avg       0.77      0.83      0.79      4000
+weighted avg       0.86      0.83      0.84      4000
+
+
+Threshold=0.606 (tuned):
+              precision    recall  f1-score   support
+
+  not sexist       0.93      0.88      0.90      3030
+      sexist       0.67      0.79      0.73       970
+
+    accuracy                           0.86      4000
+   macro avg       0.80      0.83      0.81      4000
+weighted avg       0.87      0.86      0.86      4000
+

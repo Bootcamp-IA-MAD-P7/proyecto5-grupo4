@@ -79,3 +79,41 @@ def predict(text, threshold=0.5):
 print(predict("Women belong in the kitchen"))   # "sexist"
 print(predict("Great weather today"))           # "not sexist"
 Use threshold 0.5 (optimal for gamma=1.0) or adjust for precision/recall tradeoff
+
+## Ensemble: Logistic Regression + DistilBERT
+
+### Why ensemble a classical model with a deep learning model?
+
+- **Logistic Regression + TF-IDF** captures bag-of-words patterns — lexical cues, specific slurs, and phrase frequency — with high precision. It is fast, interpretable, and strong on clear-cut cases where explicit keyword presence determines the label.
+- **DistilBERT** captures contextual and syntactic nuance — sarcasm, implied meaning, and word order — via self-attention. It generalizes better to unseen phrasing but occasionally over-predicts on edge cases.
+- Their errors are **complementary**: LR reliably flags obvious slur-heavy content but misses subtle cases; DistilBERT catches nuance but produces more false positives. Blending them smooths out both failure modes.
+
+### Method
+
+A weighted average of both models' predicted probabilities. We searched 21 weights (0.00–1.00 in 0.05 steps) on the dev set to find the optimal contribution for DistilBERT.
+
+**Best weight: 0.60** (DistilBERT) / **0.40** (Logistic Regression).
+
+### Results
+
+| Metric | Logistic Regression | DistilBERT | Ensemble |
+|---|---|---|---|
+| F1 (sexist) | ~0.63 | 0.72 | **0.73** |
+| Precision (sexist) | — | 0.69 | **0.70** |
+| Recall (sexist) | — | 0.76 | **0.76** |
+| Accuracy | — | 86% | **86%** |
+| Macro F1 | ~0.74 | 0.82 | **0.82** |
+
+```
+              precision    recall  f1-score   support
+  not sexist       0.92      0.90      0.91      3030
+      sexist       0.70      0.76      0.73       970
+
+    accuracy                           0.86      4000
+   macro avg       0.81      0.83      0.82      4000
+weighted avg       0.87      0.86      0.86      4000
+```
+
+Confusion matrix: **[[2714 316] [237 733]]** — 316 false positives, 237 false negatives.
+
+**Takeaway:** Marginal but consistent improvement (+1 F1, +1 precision) over DistilBERT alone. The LR component adds complementary signal, particularly on examples where the transformer is uncertain, making the ensemble more robust than either model in isolation.

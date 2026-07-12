@@ -1,4 +1,3 @@
-# %%
 import polars as pl
 import altair as alt
 import pyarrow as pa
@@ -27,6 +26,11 @@ df_pd = df.to_pandas().reset_index()
 df_sexist = df.filter(pl.col("label_sexist") == "sexist")
 df_sexist_pd = df_sexist.to_pandas().reset_index()
 
+# %%
+# %% [markdown]
+# ## Inspección de variables
+#
+# Revisión de la estructura del dataset combinado: dimensiones, tipos de dato por columna y muestra de filas.
 
 # %%
 # Nombre de las columnas
@@ -283,9 +287,56 @@ slurs_in_not_sexist = df_pd[
 ]
 print(f"\n=== Slurs in 'not sexist' tweets: {len(slurs_in_not_sexist)} rows ===")
 print(slurs_in_not_sexist[["text", "label_category"]].head(10))
+print(df.shape)
+print(df.schema)
+df.head(5)
 
+# %% [markdown]
+# ## Valores nulos
+#
+# Conteo de valores nulos por columna, en cantidad y porcentaje sobre el total de filas.
 
 # %%
+nulls = df.null_count()
+total = df.height
+for col in df.columns:
+    n = nulls[col][0]
+    pct = round(100 * n / total, 2)
+    print(f"{col:<20} {n:>6}  ({pct}%)")
+
+# %% [markdown]
+# ## Análisis de la variable objetivo
+#
+# Distribución de la variable objetivo `sexist`, ya unificada como booleana en el dataset combinado.
+
+# %%
+print(df["sexist"].value_counts())
+# %%
+
+# %% [markdown]
+# ## Variable derivada: cantidad de palabras
+#
+# Se crea `word_count` a partir de `text`, contando la cantidad de palabras por comentario, para tener una variable numérica adicional a cruzar en la matriz de correlación.
+
+# %%
+df = df.with_columns(pl.col("text").str.split(" ").list.len().alias("word_count"))
+print(df.select(["text", "word_count"]).head(5))
+
+# %% [markdown]
+# ## Matriz de correlación
+#
+# Correlación de Pearson entre las variables numéricas del dataset: `sexist` (target, tratado como 0/1), `toxicity` y `word_count`.
+
+# %%
+corr_df = df.select(["sexist", "toxicity", "word_count"]).to_pandas()
+corr_matrix = corr_df.corr()
+print(corr_matrix)
+
+plt.figure(figsize=(6, 4))
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", vmin=-1, vmax=1)
+plt.title("Matriz de correlación")
+plt.tight_layout()
+plt.show()
 """
 Code for saving this file as a notebook.
 # It Goes at the end of the file.

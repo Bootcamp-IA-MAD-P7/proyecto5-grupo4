@@ -31,6 +31,18 @@ We compared standard CrossEntropy (baseline) against Focal Loss with different g
 
 **Gamma=1.0** was the best performer — matching baseline F1 while reducing false positives by **19 posts** (333 vs 352) and achieving the highest overall accuracy (86%). Higher gamma values (2.0, 3.0) caused precision to collapse as the model over-predicted the minority class.
 
+### Text Cleaning Experiment
+
+An experiment moved `.lower()` to the end of the `clean_text` pipeline to preserve case during intermediate cleaning steps. This changed tokenization behavior and produced the following results (gamma=1.0, tuned threshold):
+
+| Model | F1 (sexist) | Precision | Recall | FN | FP | Val Loss (Epoch 5) |
+|-------|:-----------:|:---------:|:------:|:-:|:-:|:------------------:|
+| Original | **0.72** | **0.69** | 0.76 | **234** | **333** | — |
+| `.lower()` fix | 0.73 | 0.67 | **0.79** | 204 | 375 | **0.55** |
+
+The `.lower()` fix caught **30 more sexist posts** (FN: 204 vs 234) but added **42 more false positives** (FP: 375 vs 333). Validation loss spiked after epoch 2 (0.22 → 0.43 → 0.55), indicating **overfitting** — the model memorized rather than generalized. The original model was kept as the final version due to better generalization.
+
+
 ### Threshold Tuning
 
 After training, `precision_recall_curve` on the dev set found the optimal decision threshold. For gamma=1.0 the tuned threshold was 0.498 — effectively equivalent to the default 0.5, indicating no custom threshold is needed.

@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "altair>=6.2.2",
     "datasets>=5.0.0",
+    "fastapi>=0.139.0",
     "jupyter>=1.1.1",
     "jupytext>=1.19.4",
     "matplotlib>=3.11.0",
@@ -14,6 +15,7 @@ dependencies = [
     "pandas>=3.0.3",
     "polars>=1.42.1",
     "pyarrow>=24.0.0",
+    "pydantic>=2.13.4",
     "safetensors>=0.8.0",
     "scikit-learn>=1.9.0",
     "seaborn>=0.13.2",
@@ -21,6 +23,10 @@ dependencies = [
     "torch>=2.12.1",
     "torch-optim>=0.0.4",
     "transformers[torch]>=5.13.0",
+    "uvicorn>=0.51.0",
     "vegafusion>=2.0.3",
     "vl-convert-python>=1.9.0.post1",
 ]
+
+[tool.ty]
+venv-path = ".venv"

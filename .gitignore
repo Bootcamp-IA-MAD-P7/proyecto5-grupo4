@@ -66,5 +66,8 @@ temp/
 *.db
 *.sqlite
 
+# Trained model artifacts (stored on Hugging Face Hub)
+models/distilbert/final_model/
+
 # Unused datasets
 data/unused/

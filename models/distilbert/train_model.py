@@ -4,7 +4,12 @@ import numpy as np
 import json
 from torch.utils.data import Dataset, DataLoader
 from safetensors.torch import load_file
-from transformers import DistilBertForSequenceClassification, TrainingArguments, Trainer
+from transformers import (
+    DistilBertForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+    DistilBertTokenizer,
+)
 from torch.optim import AdamW
 from sklearn.metrics import (
     classification_report,
@@ -163,6 +168,24 @@ if __name__ == "__main__":
     print(f"Training with Focal Loss (gamma={GAMMA})...")
     trainer.train()
 
+    print("\nSaving model...")
+
+    os.makedirs("./models/distilbert/final_model", exist_ok=True)
+
+    tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+    tokenizer.save_pretrained("./models/distilbert/final_model")
+
+    print("Model saved to ./models/distilbert/final_model/")
+
+    model_save_path = Path("./models/distilbert/checkpoint-final")
+    model_save_path.mkdir(parents=True, exist_ok=True)
+
+    model.save_pretrained(model_save_path)
+    tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+    tokenizer.save_pretrained(model_save_path)
+
+    print(f"Model saved to {model_save_path}/")
+
     print("\nTuning threshold on dev set...")
     dev_logits = trainer.predict(dev_loader.dataset).predictions
     dev_probs = torch.nn.functional.softmax(torch.tensor(dev_logits), dim=-1)[
@@ -210,37 +233,3 @@ if __name__ == "__main__":
 
     with open(results_dir / "confusion_matrix.txt", "w") as f:
         f.write("Threshold=0.5 (default):\n")
-        f.write(str(cm_default) + "\n\n")
-        f.write(f"Threshold={best_threshold:.3f} (tuned):\n")
-        f.write(str(cm) + "\n")
-
-    with open(results_dir / "classification_report.txt", "w") as f:
-        f.write("Threshold=0.5 (default):\n")
-        f.write(
-            classification_report(
-                true_labels, preds_default, target_names=["not sexist", "sexist"]
-            )
-            + "\n\n"
-        )
-        f.write(f"Threshold={best_threshold:.3f} (tuned):\n")
-        f.write(
-            classification_report(
-                true_labels, preds, target_names=["not sexist", "sexist"]
-            )
-            + "\n"
-        )
-
-    metrics = {
-        "gamma": GAMMA,
-        "best_threshold": float(best_threshold),
-        "dev_best_f1": float(best_dev_f1),
-        "default_f1": float(f1_score(true_labels, preds_default)),
-        "tuned_f1": float(f1_score(true_labels, preds)),
-    }
-    with open(results_dir / "metrics.json", "w") as f:
-        json.dump(metrics, f, indent=2)
-
-    np.save(results_dir / "test_probs.npy", test_probs)
-    np.save(results_dir / "dev_probs.npy", dev_probs)
-
-    print(f"\nResults saved to {results_dir}/")

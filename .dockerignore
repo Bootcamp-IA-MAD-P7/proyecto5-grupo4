@@ -1,0 +1,14 @@
+.venv/
+.git/
+.github/
+__pycache__/
+*.pyc
+*.ipynb
+data/
+docs/
+eda/
+models/distilbert/
+models/**/results/
+README.md
+.python-version
+.gitignore

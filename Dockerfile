@@ -13,8 +13,8 @@ COPY models/logistic_regression/model.joblib ./models/logistic_regression/model.
 COPY models/logistic_regression/vectorizer.joblib ./models/logistic_regression/vectorizer.joblib
 COPY models/ensemble/weights.json ./models/ensemble/weights.json
 
-EXPOSE 8000
+EXPOSE 8080
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-10000}
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]

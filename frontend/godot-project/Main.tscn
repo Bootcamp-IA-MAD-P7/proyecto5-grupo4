@@ -802,22 +802,6 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(1, 0.941176, 0.952941, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restartbtn_normal"]
-bg_color = Color(0.788235, 0.094118, 0.290196, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.941176, 0.952941, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restartbtn_hover"]
-bg_color = Color(1, 0.301961, 0.427451, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.941176, 0.952941, 1)
-
 [sub_resource type="SpriteFrames" id="SpriteFrames_startluna"]
 animations = [{
 "frames": [{
@@ -897,6 +881,22 @@ animations = [{
 "name": &"Wave",
 "speed": 5.0
 }]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restartbtn_normal"]
+bg_color = Color(0.788235, 0.094118, 0.290196, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.941176, 0.952941, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restartbtn_hover"]
+bg_color = Color(1, 0.301961, 0.427451, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.941176, 0.952941, 1)
 
 [node name="Node2D" type="Node2D" unique_id=1551758440]
 position = Vector2(8, 0)
@@ -1039,6 +1039,8 @@ speed_scale = 2.0
 position = Vector2(2, 195)
 shape = SubResource("RectangleShape2D_introoracle")
 
+[node name="ClassifierRequest" type="HTTPRequest" parent="OracleIntro" unique_id=71299616]
+
 [node name="PortalGreen" type="Area2D" parent="." unique_id=222217446]
 script = ExtResource("4_oye8v")
 
@@ -1124,6 +1126,8 @@ speed_scale = 2.0
 position = Vector2(3162, 291)
 shape = SubResource("RectangleShape2D_d4urh")
 debug_color = Color(0.99215686, 0.7137255, 0.47058824, 0.23529412)
+
+[node name="ClassifierRequest" type="HTTPRequest" parent="Oracle1" unique_id=760314149]
 
 [node name="Step" type="StaticBody2D" parent="." unique_id=2098923054]
 position = Vector2(111, 577)
@@ -1406,7 +1410,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_demofinalize_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_demofinalize_hover")
 text = "FINALIZAR"
 
-[node name="DemoContinueButtonShadow" type="ColorRect" parent="SlideViewer"]
+[node name="DemoContinueButtonShadow" type="ColorRect" parent="SlideViewer" unique_id=878437463]
 visible = false
 offset_left = 759.0
 offset_top = 444.0
@@ -1414,7 +1418,7 @@ offset_right = 904.0
 offset_bottom = 494.0
 color = Color(0.34902, 0.0509804, 0.133333, 1)
 
-[node name="DemoContinueButton" type="Button" parent="SlideViewer"]
+[node name="DemoContinueButton" type="Button" parent="SlideViewer" unique_id=549998345]
 visible = false
 offset_left = 755.0
 offset_top = 440.0
@@ -1490,14 +1494,14 @@ sprite_frames = SubResource("SpriteFrames_finalluna")
 animation = &"Wave"
 autoplay = "Wave"
 
-[node name="RestartButtonShadow" type="ColorRect" parent="FinalScreen"]
+[node name="RestartButtonShadow" type="ColorRect" parent="FinalScreen" unique_id=739254558]
 offset_left = 334.0
 offset_top = 474.0
 offset_right = 634.0
 offset_bottom = 524.0
 color = Color(0.34902, 0.0509804, 0.133333, 1)
 
-[node name="RestartButton" type="Button" parent="FinalScreen"]
+[node name="RestartButton" type="Button" parent="FinalScreen" unique_id=790758547]
 offset_left = 330.0
 offset_top = 470.0
 offset_right = 630.0

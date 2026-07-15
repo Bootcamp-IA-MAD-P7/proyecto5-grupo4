@@ -1,108 +1,139 @@
+# Sexism Detector — NLP Binary Classification
 
+API de detección de sexismo en texto usando un ensemble de **DistilBERT + Logistic Regression**. Entrenado sobre el dataset EDOS (SemEval-2023 Task 10) con ~14,000 muestras etiquetadas.
 
-## DistilBERT Model
+**Live API:** https://sexism-detector-1000036994845.europe-west1.run.app
 
-### Architecture
+---
 
-Fine-tuned **DistilBERT-base-uncased** (66.9M parameters) for binary sexism classification using HuggingFace's `Trainer`. The model takes tokenized text (max 128 tokens) and outputs a probability for two classes: `not sexist` and `sexist`.
+## Tabla de contenidos
 
-### Training
+- [Quickstart](#quickstart)
+- [Arquitectura del proyecto](#arquitectura-del-proyecto)
+- [Dataset](#dataset)
+- [Modelos](#modelos)
+  - [Logistic Regression + TF-IDF](#logistic-regression--tf-idf)
+  - [DistilBERT](#distilbert)
+  - [Ensemble](#ensemble)
+- [API](#api)
+- [Docker](#docker)
+- [Deploy (Google Cloud Run)](#deploy-google-cloud-run)
+- [Resultados](#resultados)
+- [Equipo](#equipo)
 
-The model is trained on the EDOS labelled dataset with ~14,000 training samples. Training runs for 5 epochs with batch size 16, learning rate 2e-5, and AdamW optimizer.
+---
 
-### Class Imbalance
+## Quickstart
 
-The dataset has a **76/24 split** (not sexist / sexist), addressed through:
+```bash
+# Probar la API desplegada
+curl -X POST https://sexism-detector-1000036994845.europe-west1.run.app/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Women belong in the kitchen"}'
 
-- **Balanced class weights** — computed via `sklearn.utils.class_weight.compute_class_weight`
-- **Focal Loss** — replaces cross-entropy with a gamma parameter that down-weights easy examples and focuses on hard-to-classify samples
+# Respuesta
+{"text": "Women belong in the kitchen", "label": "sexist", "confidence": 0.77}
+```
 
-### Experiments & Results
+---
 
-We compared standard CrossEntropy (baseline) against Focal Loss with different gamma values:
+## Arquitectura del proyecto
 
-| Version | Gamma | F1 (sexist) | Precision | Recall | FN | FP | Accuracy |
-|---------|:-----:|:-----------:|:---------:|:------:|:-:|:-:|:--------:|
-| Baseline (CE) | — | 0.72 | 0.68 | 0.76 | 234 | 352 | 85% |
-| Focal Loss | **1.0** | **0.72** | **0.69** | **0.76** | **234** | **333** | **86%** |
-| Focal Loss | 1.5 | 0.71 | 0.66 | 0.78 | 210 | 399 | 85% |
-| Focal Loss | 2.0 | 0.59 | 0.43 | 0.94 | — | — | 82% |
-| Focal Loss | 3.0 | ~0.50 | ~0.30 | ~0.98 | — | — | ~78% |
+```
+proyecto5-grupo4/
+├── backend/
+│   └── main.py                  # API FastAPI (endpoints /health y /predict)
+├── scripts/
+│   └── predict.py               # Lógica de predicción (ensemble)
+├── models/
+│   ├── distilbert/
+│   │   ├── data_pipeline.py     # Preprocesamiento y tokenización
+│   │   └── train_model.py       # Entrenamiento con Focal Loss
+│   ├── logistic_regression/
+│   │   ├── data_pipeline.py     # Limpieza de texto y splits
+│   │   ├── train_model.py       # TF-IDF + Logistic Regression
+│   │   ├── model.joblib          # Modelo entrenado
+│   │   └── vectorizer.joblib     # Vectorizador TF-IDF
+│   └── ensemble/
+│       ├── trained_ensemble.py  # Búsqueda de pesos óptimos
+│       └── weights.json          # Pesos: 0.60 DB / 0.40 LR
+├── data/
+│   ├── raw/                     # Dataset original EDOS
+│   └── processed/               # Splits en parquet
+├── eda/                         # Análisis exploratorio
+├── Dockerfile                   # Contenedor para deploy
+├── pyproject.toml               # Dependencias (uv)
+└── uv.lock                      # Versiones exactas
+```
 
-**Gamma=1.0** was the best performer — matching baseline F1 while reducing false positives by **19 posts** (333 vs 352) and achieving the highest overall accuracy (86%). Higher gamma values (2.0, 3.0) caused precision to collapse as the model over-predicted the minority class.
+---
 
-### Text Cleaning Experiment
+## Dataset
 
-An experiment moved `.lower()` to the end of the `clean_text` pipeline to preserve case during intermediate cleaning steps. This changed tokenization behavior and produced the following results (gamma=1.0, tuned threshold):
+**EDOS (Explainable Detection of Online Sexism)** — SemEval-2023 Task 10
 
-| Model | F1 (sexist) | Precision | Recall | FN | FP | Val Loss (Epoch 5) |
-|-------|:-----------:|:---------:|:------:|:-:|:-:|:------------------:|
-| Original | **0.72** | **0.69** | 0.76 | **234** | **333** | — |
-| `.lower()` fix | 0.73 | 0.67 | **0.79** | 204 | 375 | **0.55** |
+| Split | Muestras | Not sexist | Sexist |
+|-------|----------|-----------|--------|
+| Train | 14,000 | 76% | 24% |
+| Dev | 2,000 | 76% | 24% |
+| Test | 4,000 | 76% | 24% |
 
-The `.lower()` fix caught **30 more sexist posts** (FN: 204 vs 234) but added **42 more false positives** (FP: 375 vs 333). Validation loss spiked after epoch 2 (0.22 → 0.43 → 0.55), indicating **overfitting** — the model memorized rather than generalized. The original model was kept as the final version due to better generalization.
+**Desbalance de clases:** 76/24 — abordado con class weights balanceados y Focal Loss.
 
+**Preprocesamiento:**
+- Lowercase
+- Eliminación de placeholders `[USER]`, `[URL]`
+- Normalización de espacios
 
-### Threshold Tuning
+---
 
-After training, `precision_recall_curve` on the dev set found the optimal decision threshold. For gamma=1.0 the tuned threshold was 0.498 — effectively equivalent to the default 0.5, indicating no custom threshold is needed.
+## Modelos
 
-### GPU Training via Google Colab
+### Logistic Regression + TF-IDF
 
-The training script is GPU-ready — HuggingFace's `Trainer` automatically detects and uses CUDA when available. Training on CPU takes several hours, while a free **T4 GPU on Google Colab** completes 5 epochs in **~6 minutes** — roughly **40x faster**.
+Modelo clásico que captura patrones léxicos (slurs, frecuencia de palabras clave).
 
-To train on Colab:
+- **Vectorización:** TF-IDF con configuración por defecto (unigrams)
+- **Modelo:** Logistic Regression con `class_weight="balanced"`, `max_iter=1000`
+- **Resultado:** F1 (sexist) = 0.63, ROC-AUC = 0.847
 
-1. Upload `train_data.safetensors`, `dev_data.safetensors`, `test_data.safetensors`, and `config.pt` to Google Drive
-2. Open `train_model_distilbert.py` in Colab and change `_base` to your Drive path
-3. Set runtime to **T4 GPU** (Runtime → Change runtime type)
-4. Run `!pip install transformers torch safetensors scikit-learn`
-5. Execute the script
+Se probó tuning de hiperparámetros (C, ngram_range, min_df) pero el modelo por defecto generalizó mejor — el tuning sobreajustó al dev set.
 
-### Inference
+### DistilBERT
 
-```python
-from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
-import torch
+Fine-tuned **DistilBERT-base-uncased** (66.9M parámetros) para clasificación binaria.
 
-model_path = "./results/checkpoint-XXXX"  # replace with actual checkpoint
-model = DistilBertForSequenceClassification.from_pretrained(model_path)
-tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+- **Tokenización:** max 128 tokens
+- **Training:** 5 epochs, batch size 16, learning rate 2e-5, AdamW
+- **Loss:** Focal Loss (gamma=1.0) con class weights balanceados
+- **Threshold:** 0.5 (óptimo tras tuning con precision_recall_curve)
+- **GPU:** Entrenado en Google Colab con T4 GPU (~6 min)
 
-def predict(text, threshold=0.5):
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=128)
-    outputs = model(**inputs)
-    probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
-    pred = (probs[:, 1] >= threshold).int().item()
-    return "sexist" if pred else "not sexist"
+**Modelo publicado en HuggingFace:** [Anahia/sexism-detector-distilbert](https://huggingface.co/Anahia/sexism-detector-distilbert)
 
-print(predict("Women belong in the kitchen"))   # "sexist"
-print(predict("Great weather today"))           # "not sexist"
-Use threshold 0.5 (optimal for gamma=1.0) or adjust for precision/recall tradeoff
+#### Experimentos con Focal Loss
 
-## Ensemble: Logistic Regression + DistilBERT
+| Gamma | F1 (sexist) | Precision | Recall | Accuracy |
+|:-----:|:-----------:|:---------:|:------:|:--------:|
+| Baseline (CE) | 0.72 | 0.68 | 0.76 | 85% |
+| **1.0** | **0.72** | **0.69** | **0.76** | **86%** |
+| 1.5 | 0.71 | 0.66 | 0.78 | 85% |
+| 2.0 | 0.59 | 0.43 | 0.94 | 82% |
 
-### Why ensemble a classical model with a deep learning model?
+### Ensemble
 
-- **Logistic Regression + TF-IDF** captures bag-of-words patterns — lexical cues, specific slurs, and phrase frequency — with high precision. It is fast, interpretable, and strong on clear-cut cases where explicit keyword presence determines the label.
-- **DistilBERT** captures contextual and syntactic nuance — sarcasm, implied meaning, and word order — via self-attention. It generalizes better to unseen phrasing but occasionally over-predicts on edge cases.
-- Their errors are **complementary**: LR reliably flags obvious slur-heavy content but misses subtle cases; DistilBERT catches nuance but produces more false positives. Blending them smooths out both failure modes.
+Promedio ponderado de las probabilidades de ambos modelos.
 
-### Method
+**Pesos óptimos:** 60% DistilBERT + 40% Logistic Regression (buscados en 21 pasos sobre dev set).
 
-A weighted average of both models' predicted probabilities. We searched 21 weights (0.00–1.00 in 0.05 steps) on the dev set to find the optimal contribution for DistilBERT.
+**¿Por qué ensemble?**
+- LR detecta bien casos obvios (slurs explícitos) pero falla en sutilezas
+- DistilBERT captura contexto y sarcasmo pero genera más falsos positivos
+- Sus errores son complementarios — combinarlos mejora ambos
 
-**Best weight: 0.60** (DistilBERT) / **0.40** (Logistic Regression).
+---
 
-### Results
-
-| Metric | Logistic Regression | DistilBERT | Ensemble |
-|---|---|---|---|
-| F1 (sexist) | ~0.63 | 0.72 | **0.73** |
-| Precision (sexist) | — | 0.69 | **0.70** |
-| Recall (sexist) | — | 0.76 | **0.76** |
-| Accuracy | — | 86% | **86%** |
-| Macro F1 | ~0.74 | 0.82 | **0.82** |
+## Resultados finales (Ensemble en test set)
 
 ```
               precision    recall  f1-score   support
@@ -111,9 +142,117 @@ A weighted average of both models' predicted probabilities. We searched 21 weigh
 
     accuracy                           0.86      4000
    macro avg       0.81      0.83      0.82      4000
-weighted avg       0.87      0.86      0.86      4000
 ```
 
-Confusion matrix: **[[2714 316] [237 733]]** — 316 false positives, 237 false negatives.
+| Métrica | LR | DistilBERT | Ensemble |
+|---|---|---|---|
+| F1 (sexist) | 0.63 | 0.72 | **0.73** |
+| Precision | — | 0.69 | **0.70** |
+| Recall | — | 0.76 | **0.76** |
+| Accuracy | — | 86% | **86%** |
 
-**Takeaway:** Marginal but consistent improvement (+1 F1, +1 precision) over DistilBERT alone. The LR component adds complementary signal, particularly on examples where the transformer is uncertain, making the ensemble more robust than either model in isolation.
+---
+
+## API
+
+FastAPI con dos endpoints:
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| POST | `/predict` | Predicción de sexismo |
+
+**Request:**
+```json
+POST /predict
+{"text": "texto a analizar"}
+```
+
+**Response:**
+```json
+{
+  "text": "texto a analizar",
+  "label": "sexist",
+  "confidence": 0.77
+}
+```
+
+---
+
+## Docker
+
+```bash
+# Construir imagen
+docker build -t sexism-detector .
+
+# Ejecutar en local
+docker run -d -p 8080:8080 --name sexism-api sexism-detector
+
+# Probar
+curl http://localhost:8080/health
+```
+
+El Dockerfile usa `uv` para instalar dependencias y expone el puerto 8080.
+
+---
+
+## Deploy (Google Cloud Run)
+
+La API está desplegada en Google Cloud Run con 2GB de RAM.
+
+```bash
+# Requisitos: gcloud CLI instalado y autenticado
+gcloud auth login
+gcloud config set project sexism-detector-api
+
+# Habilitar servicios
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+
+# Desplegar
+gcloud run deploy sexism-detector \
+  --source . \
+  --region europe-west1 \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --timeout 300
+```
+
+**URL de producción:** https://sexism-detector-1000036994845.europe-west1.run.app
+
+**Flujo del deploy:**
+```
+Código local → Cloud Build (construye Docker) → Artifact Registry (guarda imagen) → Cloud Run (ejecuta) → URL pública
+```
+
+---
+
+## Tech Stack
+
+- **Python 3.12**
+- **FastAPI** — API REST
+- **PyTorch + HuggingFace Transformers** — DistilBERT
+- **scikit-learn** — Logistic Regression + TF-IDF
+- **Polars** — procesamiento de datos
+- **Docker** — contenedorización
+- **uv** — gestión de dependencias
+- **Google Cloud Run** — deploy en producción
+
+---
+
+## Frontend
+
+Pendiente de integración. El frontend se conecta a la API mediante fetch POST a:
+
+```javascript
+fetch("https://sexism-detector-1000036994845.europe-west1.run.app/predict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: "texto a analizar" })
+})
+```
+
+---
+
+## Equipo
+
+Proyecto 5 — Grupo 4 | Bootcamp IA MAD P7

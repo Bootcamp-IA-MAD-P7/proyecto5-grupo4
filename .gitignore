@@ -71,3 +71,6 @@ models/distilbert/final_model/
 
 # Unused datasets
 data/unused/
+# excepcion: el build del juego se versiona para el deploy
+!frontend/build/
+!frontend/build/**

@@ -22,6 +22,7 @@ var slides: Array[Texture2D] = []
 var index: int = 0
 var demo_mode_enabled: bool = false
 var demo_continue_enabled: bool = false
+var current_owner: Node = null
 
 
 func _ready() -> void:
@@ -29,10 +30,12 @@ func _ready() -> void:
 	_set_demo_controls_visible(false)
 
 
-func open(folder_path: String, demo_mode_on_last_slide: bool = false, show_continue_in_demo: bool = false) -> void:
+func open(folder_path: String, demo_mode_on_last_slide: bool = false, show_continue_in_demo: bool = false, demo_owner: Node = null) -> void:
 	slides.clear()
 	demo_mode_enabled = demo_mode_on_last_slide
 	demo_continue_enabled = show_continue_in_demo
+	current_owner = demo_owner
+	demo_classify_button.disabled = false
 
 	var dir := DirAccess.open(folder_path)
 	if dir == null:
@@ -98,6 +101,10 @@ func _set_demo_controls_visible(v: bool) -> void:
 
 func set_classification_result(text: String) -> void:
 	demo_result_label.text = text
+
+
+func set_classify_button_disabled(disabled: bool) -> void:
+	demo_classify_button.disabled = disabled
 
 
 func _on_left_arrow_pressed() -> void:
